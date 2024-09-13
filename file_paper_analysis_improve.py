@@ -36,22 +36,25 @@ def process_file(api_key, file_path, message, question_types):
 
             # 获取的初始回答
             answer = response.choices[0].message.content.strip()
+            # 使用正则表达式分割文本
+            pattern = r"\*\*第(?:[一二三四五六七八九十百]+|[1-9]\d*)个问题\*\*[:：]"
+            answer_sections = re.split(pattern, answer)
 
-            answer_sections = answer.split("\n\n")  # 以双换行分段
+            # 移除可能的空字符串
+            answer_sections = [section.strip() for section in answer_sections if section.strip()]
 
+            print(answer_sections)
             # 将每个问题的答案对应存储到results字典中
             for i, question in enumerate(question_types[1:]):  # 跳过"文件名"这一列
                 if i < len(answer_sections):
-
+                    
                     # 去掉所有*号，清理标记
                     cleaned_answer = answer_sections[i].replace("*", "")
-                    # 去掉类似 "第x个问题:" 或 "第x个问题：" 的标记，x是中文数字
-                    cleaned_answer = re.sub(r"\s*第\s*(?:[一二三四五六七八九]+(?:十[一二三四五六七八九]*)?|[二三四五六七八九十百]+)\s*个\s*问题\s*[:：]", "", cleaned_answer)
                     # 去掉类似 **动机**：的**标记
                     cleaned_answer = re.sub(r"\*\*[^*]+\*\*：", "", cleaned_answer)  
                     # 去除每一行最前面的空格
                     cleaned_answer = "\n".join(line.lstrip() for line in cleaned_answer.splitlines())
-
+                    
                     results[question] = cleaned_answer.strip()  # 提取每个问题的答案
                     
                 else:
@@ -96,7 +99,7 @@ def main(api_key, file_path_or_folder, output_excel,output_question):
     output_question = os.path.abspath(output_question)
 
     message = """
-        你是人工智能领域的专家，以下内容是一篇论文：\n\n{file_content}\n\n请以这篇论文的内容为依据和回答的背景知识，逐条回复以下问题。请确保每个问题的回答独立分段，每个问题之间不留空行，并按顺序提供。
+        你是人工智能领域的专家，以下内容是一篇论文：\n\n{file_content}\n\n请以这篇论文的内容为依据和回答的背景知识，逐条回复以下问题。请确保每个问题的回答独立分段，以```**第一个问题**：对应的答案, **第二个问题**：对应的答案, **第三个问题**：对应的答案```作为输出格式,每个问题之间不留空行，并按顺序提供。
         **第一个问题**：请对论文的内容进行摘要总结，包含研究背景与问题、研究目的、方法、主要结果和结论，字数要求在150-300字之间，使用论文中的术语和概念。
         **第二个问题**：请提取论文的摘要原文，摘要一般在Abstract之后，Introduction之前。
         **第三个问题**：请列出论文的全部作者，按照以下格式：\n```\n作者1, 作者2, 作者3\n```。
@@ -137,16 +140,18 @@ def main(api_key, file_path_or_folder, output_excel,output_question):
 
     # 处理文件夹
     elif os.path.isdir(file_path_or_folder):
+        pdf_count = 0  # 用来计数处理的PDF文件数量
         # 遍历源文件夹中的所有文件
         for root, dirs, files in os.walk(file_path_or_folder):
             for i, filename in enumerate(files):
                 if filename.lower().endswith(".pdf"):  # 确保只处理PDF文件
+                    pdf_count += 1  # 每处理一个PDF文件，计数加1
                     file_path = os.path.join(root, filename)
                     print(f"正在处理文件: {filename}")
                     try:
                         analysis_results = process_file(api_key, file_path, message,question_types)
                         if analysis_results:
-                            summary_question+=f"第{i+1}篇论文：{analysis_results}\n\n" # 用于生成综述
+                            summary_question+=f"第{pdf_count}篇论文：{analysis_results}\n\n" # 用于生成综述
                             result = {"文件名": filename}
                             result.update(analysis_results)  # 将每个问题的分析结果加入字典
                             append_to_excel([result], output_excel, question_types)
@@ -159,10 +164,10 @@ def main(api_key, file_path_or_folder, output_excel,output_question):
             file.write(message)
         print(f"结果已保存到 {output_question}")
 
-    print("===========================处理完成===========================")
+    print("===========================文件处理完成===========================")
     return summary_question
     
 if __name__ == "__main__":
     
     # API Key, 待解析文件路径, 输出结果文件路径（excel）,输出问题路径（txt）
-    main("", "", "","")
+    main("", "","","")

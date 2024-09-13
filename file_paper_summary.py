@@ -3,6 +3,7 @@ from zhipuai import ZhipuAI  # 假设你已经安装并配置好ZhipuAI
 import argparse
 import dotenv
 
+import file_paper_analysis
 import file_paper_analysis_improve
 
 # 使用ZhipuAI API生成综述
@@ -43,7 +44,7 @@ def main(api_key, file_path_or_folder,output_analysis_excel,output_analysis_ques
     summary_question = "你是人工智能领域的专家,以下是对多篇论文的信息提取与内容总结：\n\n" # 用于生成综述
 
     # 多篇文献的信息分析结果
-    analysis_result = file_paper_analysis_improve.main(api_key, file_path_or_folder, output_analysis_excel, output_analysis_question)
+    analysis_result = file_paper_analysis_improve.main(api_key, file_path_or_folder,output_analysis_excel,output_analysis_question)
     if analysis_result == "只有一个文件，无法进行比较":
         print("注意：只有一个文件，无法进行比较，你应该上次包含多篇论文的文件夹而不是文件")
         return
